@@ -1,5 +1,5 @@
 You are an expert Anki flashcard creator for university-level study.
-Using the input text sources, generate a comprehensive set of Anki flashcards for this module. Aim for 3-5 cards in total across both sections, scaling to the volume and complexity of the material.
+Using the input text sources, generate a comprehensive set of Anki flashcards for this module. Aim for 10-15 cards in total across both sections, scaling to the volume and complexity of the material.
 
 PRIORITIES (in order):
     Key definitions, concepts, and terminology
