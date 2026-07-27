@@ -9,6 +9,7 @@ from google import genai
 from google.genai import types
 from google.genai import errors
 from dotenv import load_dotenv
+from string import Template
 
 # src: https://www.bomberbot.com/python/mastering-file-saving-in-python-a-comprehensive-guide-to-user-defined-filenames/
 def sanitize_filename(filename):
@@ -53,12 +54,46 @@ def main():
     }
 
     st.title('AI-powered Anki card generator')
+    st.text('Upload lecture notes to be automatically created into an Anki deck of flashcards!')
 
+    # user input:
     with st.form(key="my_form", enter_to_submit=False):
-        topic = st.text_input("Enter a topic to generate Anki cards about:")
+        topic = st.text_input("Enter a specific topic or module name:")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            uploaded_file = st.file_uploader("Upload a text file:", type='text/*') 
+        with col2:
+            pasted_notes = st.text_area("Paste in notes and/or extra instructions:")
+
+        study_level = st.pills("Enter study level:", ['GCSE', 'A-Level', 'Undergraduate', 'Postgraduate'])
+        num_cards = st.select_slider("Select the number of cards to be generated:", [i for i in range(1,21)])
+
         submitted = st.form_submit_button("Generate")
 
     if submitted:
+        # guard check:
+        if not topic:
+            st.warning("Please enter topic or module name.")
+            st.stop()
+        if not pasted_notes and uploaded_file is None:
+            st.warning("Please paste notes, or upload a file.")
+            st.stop()
+        if not study_level:
+            st.warning("Please select study level.")
+            st.stop()
+
+        # model inputs:
+        system_prompt = Template(system_prompt).safe_substitute(study_level=study_level, num_cards=num_cards)
+
+        # combine user inputs
+        model_input = ""
+        if uploaded_file is not None:
+                stringio = io.StringIO(uploaded_file.getvalue().decode("utf-8"))
+                model_input += stringio.read()
+        if pasted_notes:
+            model_input += f'\n {pasted_notes}'
+
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
         try:
@@ -66,7 +101,7 @@ def main():
             with st.spinner(text=f"Generating Anki cards about {topic}..."):
                 response = client.models.generate_content(
                     model=AI_MODEL_CODE,
-                    contents=types.Part.from_text(text=topic),
+                    contents=types.Part.from_text(text=f'topic:{topic} \n contents:{model_input}'),
                     config=types.GenerateContentConfig(
                         system_instruction=system_prompt,
                         temperature=0,
@@ -76,7 +111,7 @@ def main():
                         response_json_schema=json_schema
                     ),
                 )
-                st.success("Done")
+                st.success("Anki deck generated!")
 
             cards = json.loads(response.text)
 
@@ -135,12 +170,10 @@ def main():
             buffer.close()
 
         except errors.APIError as e:
-            print(e.code)
-            print(e.message)
+            st.error(f'Model API error ({e.code}): {e.message}')
 
         except json.JSONDecodeError as e:
-            print("Invalid JSON syntax:", e)
-
+            st.error(f'Invalid JSON syntax: {e}')
 
         client.close()
 
