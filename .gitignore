@@ -1,3 +1,5 @@
 .venv/
 .env
 *.apkg
+__pycache__/
+*.pyc

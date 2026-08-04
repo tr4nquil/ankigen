@@ -53,7 +53,7 @@ def main():
         }
     }
 
-    st.title('AI-powered Anki card generator')
+    st.title('AnkiGen')
     st.text('Upload lecture notes to be automatically created into an Anki deck of flashcards!')
 
     # user input:
